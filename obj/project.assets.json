@@ -8,19 +8,19 @@
     "net8.0-windows": []
   },
   "packageFolders": {
-    "C:\\Users\\platu\\.nuget\\packages\\": {}
+    "C:\\Users\\User\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\platu\\OneDrive\\Desktop\\Modless\\Modless.csproj",
+      "projectUniqueName": "C:\\Users\\User\\Desktop\\심근우\\Modless.csproj",
       "projectName": "Modless",
-      "projectPath": "C:\\Users\\platu\\OneDrive\\Desktop\\Modless\\Modless.csproj",
-      "packagesPath": "C:\\Users\\platu\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\platu\\OneDrive\\Desktop\\Modless\\obj\\",
+      "projectPath": "C:\\Users\\User\\Desktop\\심근우\\Modless.csproj",
+      "packagesPath": "C:\\Users\\User\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\User\\Desktop\\심근우\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\platu\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\User\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [

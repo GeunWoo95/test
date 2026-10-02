@@ -1,22 +1,24 @@
 using Autodesk.Revit.ApplicationServices;
 using Autodesk.Revit.DB;
-using Autodesk.Revit.UI;
-using Autodesk.Revit.UI.Selection;
 using Autodesk.Revit.DB.Architecture;
 using Autodesk.Revit.DB.Structure;
-
-using System.Text;
+using Autodesk.Revit.UI;
+using Autodesk.Revit.UI.Selection;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Net.Mail;
+using System.Text;
 using System.Windows.Forms;
+using 심근우;
+using 심근우FA;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 // WinForms 와 Revit API 에 같은 이름이 있는 클래스는 어느 쪽을 쓸지 지정합니다.
 using TaskDialog = Autodesk.Revit.UI.TaskDialog;
-using System.Linq;
 
 namespace Modless
 {
@@ -71,6 +73,16 @@ namespace Modless
         private readonly ExternalEvent _exEvent;
         // 번호표에 적어 둔 할 일 (내 차례가 되면 실행됨)
         private Action<UIDocument, Document> _action;
+        public static string m_floortype = "";
+        public static string m_BLevelstr;
+        public static string m_wallheight;
+        public static string m_walltypename = "";
+        public static string m_ceilingheight;
+        public static string m_ceilingtypename = "";
+        public static string m_columnheight;
+        public static string m_columntypename = "";
+
+
         //
         public MainForm()
         {
@@ -85,9 +97,19 @@ namespace Modless
         private void button1_Click(object sender, EventArgs e)
         {
             RunRevit((uidoc, doc) =>
+
             {
-                // 할 일
-                TaskDialog.Show("Modless", "버튼 클릭! 내 차례!");
+                List<FloorData> fl = FloorATT.GetFloorData(doc, uidoc, m_floortype);
+                if (fl == null)
+                {
+                    TaskDialog.Show("오류", "바닥 정보를 가져오지 못했습니다.");
+                    return;
+                }
+
+                foreach (FloorData f in fl)
+                {
+                    Util.CreateFloor(doc, f.m_CurveLoops, f.m_FloorType, f.m_Level, f.m_FloorTypeTHK);
+                }
             });
         }
 
@@ -150,5 +172,185 @@ namespace Modless
             _exEvent.Dispose();
             base.OnFormClosed(e);
         }
+
+        private void label2_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label1_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label6_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void comboBox1_SelectedIndexChanged_1(object sender, EventArgs e)
+        {
+            m_floortype = comboBox1.SelectedItem.ToString();
+        }
+
+        private void comboBox5_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            m_BLevelstr = comboBox5.SelectedItem.ToString();
+        }
+
+        private void MainForm_Load(object sender, EventArgs e)
+        {
+            RunRevit((uidoc, doc) =>
+            {
+                FilteredElementCollector col = new FilteredElementCollector(doc);
+                col.OfCategory(BuiltInCategory.OST_Floors);
+                col.OfClass(typeof(FloorType));
+
+                foreach (FloorType item in col)
+                {
+                    string name = item.Name;
+                    comboBox1.Items.Add(name);
+                }
+
+                FilteredElementCollector colColumn = new FilteredElementCollector(doc);
+                colColumn.OfCategory(BuiltInCategory.OST_StructuralColumns);
+                colColumn.OfClass(typeof(FamilySymbol));
+
+                foreach (FamilySymbol item in colColumn)
+                {
+                    string name = item.Name;
+                    comboBox4.Items.Add(name);
+                }
+
+                FilteredElementCollector colWall = new FilteredElementCollector(doc);
+                colWall.OfCategory(BuiltInCategory.OST_Walls);
+                colWall.OfClass(typeof(WallType));
+
+                foreach (WallType item in colWall)
+                {
+                    string name = item.Name;
+                    comboBox2.Items.Add(name);
+                }
+
+                FilteredElementCollector colLevel = new FilteredElementCollector(doc);
+                colLevel.OfClass(typeof(Level));
+
+                foreach (Level item in colLevel)
+                {
+                    string name = item.Name;
+                    comboBox5.Items.Add(name);
+                }
+
+                FilteredElementCollector colceilingType = new FilteredElementCollector(doc);
+                colceilingType.OfClass(typeof(CeilingType));
+
+                foreach (CeilingType item in colceilingType)
+                {
+                    string name = item.Name;
+                    comboBox3.Items.Add(name);
+                }
+            });
+        }
+
+        private void comboBox2_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            m_walltypename = comboBox2.SelectedItem.ToString();
+        }
+
+        private void comboBox3_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            m_ceilingtypename = comboBox3.SelectedItem.ToString();
+        }
+
+        private void comboBox4_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            m_columntypename = comboBox4.SelectedItem.ToString();
+        }
+
+
+        private void textBox1_TextChanged(object sender, EventArgs e)
+        {
+            m_wallheight = textBox1.Text;
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            RunRevit((uidoc, doc) =>
+            {
+                Reference r = uidoc.Selection.PickObject(ObjectType.Face);
+                Element e = doc.GetElement(r);
+                Face f = e.GetGeometryObjectFromReference(r) as Face;
+
+                EdgeArrayArray EAA = f.EdgeLoops;
+                List<CurveLoop> cls = new List<CurveLoop>();
+                foreach (EdgeArray item in EAA)
+                {
+                    CurveLoop cl = new CurveLoop();
+                    foreach (Edge item1 in item)
+                    {
+                        cl.Append(item1.AsCurve());
+                    }
+                    cls.Add(cl);
+                }
+
+                CurveLoop firstLoop = cls[0];
+                WallType wt = Util.GetWallTypeByName(doc, m_walltypename);
+                if (wt == null)
+                {
+                    TaskDialog.Show("오류", m_walltypename + "벽 유형을 찾을 수 없습니다.");
+                    return;
+                }
+
+                Parameter param = wt.get_Parameter
+                (BuiltInParameter.WALL_ATTR_WIDTH_PARAM);
+
+                double t = Util.GetWallWidth(wt);
+                CurveLoop offsetloop = CurveLoop.CreateViaOffset
+                (firstLoop, -t / 2, XYZ.BasisZ);
+                int tt = offsetloop.NumberOfCurves();
+                Level level = doc.ActiveView.GenLevel;
+                double WallHeight = Convert.ToDouble(m_wallheight);
+
+                foreach (Curve curve in offsetloop)
+                {
+                    Util.CreateWall(doc, curve, wt, level, WallHeight / 304.8, XYZ.BasisZ, false);
+                }
+
+            });
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            RunRevit((uidoc, doc) =>
+            {
+                Reference r = uidoc.Selection.PickObject(ObjectType.Face);
+                Element e = doc.GetElement(r);
+                Edge f = e.GetGeometryObjectFromReference(r) as Edge;
+                CeilingType ct = Util.GetCeilingTypeByName(doc, m_ceilingtypename);
+                Level level = doc.ActiveView.GenLevel;
+                
+                Ceiling.Create(doc, f, ct, level);
+                
+            });
+            Ceiling.Create(ct, level, CurveArray curveArray, XYZ normal);
+
+        }
+
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBox2_TextChanged(object sender, EventArgs e)
+        {
+            m_ceilingheight = textBox2.Text;
+        }
+           
+        private void textBox3_TextChanged(object sender, EventArgs e)
+        {
+            m_columnheight = textBox3.Text;
+        }
+
     }
 }
